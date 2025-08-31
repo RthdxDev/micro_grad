@@ -8,6 +8,24 @@ class Scalar:
         self._op = op
         self._backward = lambda: None
 
+    def relu(self) -> 'Scalar':
+        out = Scalar(max(0, self.item), (self,), op='relu')
+
+        def _backward():
+            self.grad += out.grad * (1.0 if self.item > 0 else 0.0)
+
+        out._backward = _backward
+        return out
+    
+    def tanh(self) -> 'Scalar':
+        out = Scalar(math.tanh(self.item), (self,), op='tanh')
+
+        def _backward():
+            self.grad += out.grad * (1.0 - out.item ** 2)
+
+        out._backward = _backward
+        return out
+
     def __add__(self, other) -> 'Scalar':
         assert isinstance(other, (int, float, Scalar)), "Scalar must be a number"
         other = Scalar(other) if not isinstance(other, Scalar) else other
@@ -75,7 +93,10 @@ class Scalar:
     
     def __truediv__(self, other) -> 'Scalar':
         return self * other ** (-1)
-    
+
+    def __rtruediv__(self, other) -> 'Scalar':
+        return other * self ** (-1)
+
     def backward(self):
         topo = []
         visited = set()
@@ -93,5 +114,5 @@ class Scalar:
             node._backward()
 
     def __repr__(self) -> str:
-        return f"Scalar({self.item, self.grad})"
+        return f"Scalar{self.item, self.grad}"
 
